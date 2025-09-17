@@ -1,0 +1,7 @@
+# Example country codes in UPPERCASE ISO 3166-1 alpha-2 format
+blocked_countries:
+  - AA
+  - BB
+  - CC
+  - DD
+  - EE
