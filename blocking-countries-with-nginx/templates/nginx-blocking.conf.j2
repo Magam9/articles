@@ -1,0 +1,23 @@
+geoip2 {{ geoip_dir }}/GeoLite2-City.mmdb {
+    $geoip2_country_code default=ZZ source={{ geoip_source_nginx }} country iso_code;
+    $geoip2_data_country_iso_code source={{ geoip_source_nginx }} country iso_code;
+    $geoip2_data_country_name     source={{ geoip_source_nginx }} country names en;
+    # Declare city name variable to satisfy existing references
+    $geoip2_data_city_name source={{ geoip_source_nginx }} city names en;
+    # Additional commonly-referenced City DB fields
+    $geoip2_data_state_name  source={{ geoip_source_nginx }} subdivisions 0 names en;
+    $geoip2_data_state_code  source={{ geoip_source_nginx }} subdivisions 0 iso_code;
+    $geoip2_data_postal_code source={{ geoip_source_nginx }} postal code;
+    $geoip2_data_latitude    source={{ geoip_source_nginx }} location latitude;
+    $geoip2_data_longitude   source={{ geoip_source_nginx }} location longitude;
+    $time_zone               source={{ geoip_source_nginx }} location time_zone;
+}
+
+map $geoip2_country_code $is_blocked_country {
+    default 0;
+    {% if blocked_countries is defined %}
+    {% for cc in blocked_countries %}
+    {{ cc }} 1;
+    {% endfor %}
+    {% endif %}
+}
