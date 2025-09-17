@@ -1,0 +1,344 @@
+---
+- name: Provision geo-blocking servers (compiled GeoIP2 module)
+  hosts: webservers
+  gather_facts: yes
+  become: yes
+
+  vars_files:
+    - secrets.yml
+
+  vars:
+    geoip_dir: /usr/share/GeoIP
+    nginx_modules_dir: /usr/lib/nginx/modules
+    geoip2_module_commit: "cbaa35461c62a99d2577e6bae3273492502d8769"
+    geoip_source: "remote_addr"
+
+  pre_tasks:
+    - name: Ensure we are on Debian/Ubuntu (apt-based)
+      assert:
+        that:
+          - ansible_facts.os_family == "Debian"
+        fail_msg: "This playbook supports Debian/Ubuntu (apt) only."
+
+    - name: Ensure MaxMind license key provided
+      assert:
+        that:
+          - maxmind_license_key is defined
+          - maxmind_license_key | length > 0
+        fail_msg: "Put maxmind_license_key in secrets.yml."
+
+    - name: Create private temp build dir
+      tempfile:
+        state: directory
+        prefix: ansible-geoip2-
+      register: tmpdir
+
+    - name: Compute nginx variable for geoip2 source
+      set_fact:
+        geoip_source_nginx: "{{ '$remote_addr' if geoip_source == 'remote_addr' else '$http_x_forwarded_for' }}"
+
+  tasks:
+    - name: Install runtime libraries
+      apt:
+        update_cache: yes
+        name:
+          - libmaxminddb0
+          - libmaxminddb-dev
+          - mmdb-bin
+        state: present
+
+    - name: Install build toolchain
+      apt:
+        name:
+          - build-essential
+          - libpcre3-dev
+          - zlib1g-dev
+          - libssl-dev
+          - git
+          - curl
+        state: present
+
+    - name: Download GeoLite2-City database (tar.gz)
+      get_url:
+        url: "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key={{ maxmind_license_key }}&suffix=tar.gz"
+        dest: "{{ tmpdir.path }}/GeoLite2-City.tar.gz"
+        mode: '0600'
+      no_log: true
+
+    - name: Ensure GeoIP directory exists
+      file:
+        path: "{{ geoip_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Ensure temp extract dir exists
+      file:
+        path: "{{ tmpdir.path }}/geolite2"
+        state: directory
+        mode: '0755'
+
+    - name: Extract GeoLite2-City archive
+      unarchive:
+        src: "{{ tmpdir.path }}/GeoLite2-City.tar.gz"
+        dest: "{{ tmpdir.path }}/geolite2"
+        remote_src: yes
+
+    - name: Find extracted .mmdb
+      find:
+        paths: "{{ tmpdir.path }}/geolite2"
+        patterns: "GeoLite2-City.mmdb"
+        recurse: yes
+      register: geolite_mmdb
+
+    - name: Ensure .mmdb found
+      assert:
+        that:
+          - geolite_mmdb.matched | int > 0
+        fail_msg: "GeoLite2-City.mmdb not found after extraction."
+
+    - name: Install GeoLite2-City.mmdb
+      copy:
+        src: "{{ geolite_mmdb.files[0].path }}"
+        dest: "{{ geoip_dir }}/GeoLite2-City.mmdb"
+        owner: root
+        group: root
+        mode: '0644'
+        remote_src: true
+
+    - name: Detect installed nginx version
+      command: /bin/sh -c "nginx -v 2>&1 | cut -d/ -f2"
+      register: nginx_ver_cmd
+      changed_when: false
+
+    - name: Set nginx_version (strip distro suffix)
+      set_fact:
+        nginx_version: "{{ (nginx_ver_cmd.stdout | regex_search('([0-9]+\\.[0-9]+\\.[0-9]+)')) | default(nginx_ver_cmd.stdout | trim) }}"
+
+    - name: Fail if nginx_version could not be detected
+      assert:
+        that:
+          - nginx_version is defined
+          - nginx_version | length > 0
+        fail_msg: "Could not detect nginx version via `nginx -v`."
+
+    - name: Download nginx source tarball (matches installed)
+      get_url:
+        url: "https://nginx.org/download/nginx-{{ nginx_version }}.tar.gz"
+        dest: "{{ tmpdir.path }}/nginx-{{ nginx_version }}.tar.gz"
+        mode: '0644'
+
+    - name: Extract nginx source
+      unarchive:
+        src: "{{ tmpdir.path }}/nginx-{{ nginx_version }}.tar.gz"
+        dest: "{{ tmpdir.path }}"
+        remote_src: yes
+
+    - name: Clone ngx_http_geoip2_module (pinned)
+      git:
+        repo: https://github.com/leev/ngx_http_geoip2_module.git
+        dest: "{{ tmpdir.path }}/ngx_http_geoip2_module"
+        version: "{{ geoip2_module_commit }}"
+        depth: 1
+
+    - name: Configure nginx to build dynamic module
+      command: >
+        ./configure --with-compat
+        --add-dynamic-module="{{ tmpdir.path }}/ngx_http_geoip2_module"
+      args:
+        chdir: "{{ tmpdir.path }}/nginx-{{ nginx_version }}"
+        creates: "{{ tmpdir.path }}/nginx-{{ nginx_version }}/objs/Makefile"
+
+    - name: Build nginx dynamic modules
+      make:
+        chdir: "{{ tmpdir.path }}/nginx-{{ nginx_version }}"
+        target: modules
+
+    - name: Ensure nginx modules directory exists (canonical Ubuntu/Debian)
+      file:
+        path: "{{ nginx_modules_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install compiled ngx_http_geoip2_module.so
+      copy:
+        src: "{{ tmpdir.path }}/nginx-{{ nginx_version }}/objs/ngx_http_geoip2_module.so"
+        dest: "{{ nginx_modules_dir }}/ngx_http_geoip2_module.so"
+        owner: root
+        group: root
+        mode: '0644'
+        remote_src: true
+      notify: validate and reload nginx
+
+    - name: Purge distro geoip2 package (and configs)
+      apt:
+        name: libnginx-mod-http-geoip2
+        state: absent
+        purge: yes
+        autoremove: yes
+      notify: validate and reload nginx
+
+    - name: Remove any geoip/geoip2 module load directives from nginx.conf
+      lineinfile:
+        path: /etc/nginx/nginx.conf
+        regexp: '^\s*load_module\s+.*(ngx_http_geoip2_module|geoip2|geoip)\.so;'
+        state: absent
+      notify: validate and reload nginx
+
+    - name: Ensure /etc/nginx/modules-enabled exists
+      file:
+        path: /etc/nginx/modules-enabled
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Ensure nginx.conf includes modules-enabled snippets
+      lineinfile:
+        path: /etc/nginx/nginx.conf
+        regexp: '^\s*include\s+/etc/nginx/modules-enabled/\*\.conf;'
+        line: 'include /etc/nginx/modules-enabled/*.conf;'
+        insertafter: '^pid'
+        state: present
+      notify: validate and reload nginx
+
+    - name: Ensure single compiled geoip2 snippet present
+      copy:
+        dest: /etc/nginx/modules-enabled/99-geoip2.conf
+        content: "load_module {{ nginx_modules_dir }}/ngx_http_geoip2_module.so;\n"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: validate and reload nginx
+
+    - name: Assert module file exists at configured path
+      stat:
+        path: "{{ nginx_modules_dir }}/ngx_http_geoip2_module.so"
+      register: geoip2_so
+    - assert:
+        that: geoip2_so.stat.exists
+        fail_msg: "GeoIP2 module not found at {{ nginx_modules_dir }}/ngx_http_geoip2_module.so"
+
+    - name: Deploy geo-blocking config
+      template:
+        src: templates/nginx-blocking.conf.j2
+        dest: /etc/nginx/conf.d/geo-blocking.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: validate and reload nginx
+
+    - name: Ensure nginx snippets directory exists
+      file:
+        path: /etc/nginx/snippets
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Ensure nginx backup directory exists
+      file:
+        path: /etc/nginx/.ansible-backups
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Deploy server-level geo-block snippet
+      template:
+        src: templates/geo-block-server-451.conf.j2
+        dest: /etc/nginx/snippets/geo-block-server-451.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: validate and reload nginx
+
+    - name: Find nginx server config files
+      find:
+        paths:
+          - /etc/nginx/sites-available
+          - /etc/nginx/conf.d
+        file_type: file
+        recurse: yes
+      register: nginx_server_files
+
+    - name: Filter out backup/temporary nginx files
+      set_fact:
+        nginx_server_files_filtered: "{{ nginx_server_files.files
+          | rejectattr('path', 'search', '~$')
+          | rejectattr('path', 'search', '@')
+          | list }}"
+
+    - name: Inject snippet include into each server block
+      replace:
+        path: "{{ item.path }}"
+        regexp: '(?s)server\s*\{(?![^}]*?include\s+/etc/nginx/snippets/geo-block-server-451\.conf;)'
+        replace: 'server {\n    include /etc/nginx/snippets/geo-block-server-451.conf;'
+        backup: yes
+      loop: "{{ nginx_server_files_filtered }}"
+      notify: validate and reload nginx
+
+    - name: Find configs that also define GeoLite2-City
+      find:
+        paths:
+          - /etc/nginx/sites-enabled
+          - /etc/nginx/sites-available
+          - /etc/nginx/conf.d
+        file_type: file
+        recurse: yes
+        contains: '^\s*geoip2\s+\S*GeoLite2-City\.mmdb\b'
+      register: geoip2_city_hits
+
+    - name: Filter out backup/temp files from GeoLite2-City hits
+      set_fact:
+        geoip2_city_hits_filtered: "{{ geoip2_city_hits.files
+          | rejectattr('path', 'equalto', '/etc/nginx/conf.d/geo-blocking.conf')
+          | rejectattr('path', 'search', '~$')
+          | rejectattr('path', 'search', '@')
+          | list }}"
+
+    - name: Remove duplicate geoip2 City blocks from other configs
+      replace:
+        path: "{{ item.path }}"
+        regexp: '(?ms)^[ \t]*geoip2\s+\S*GeoLite2-City\.mmdb\s*\{.*?^[ \t]*\}\s*\n?'
+        replace: ''
+        backup: yes
+      loop: "{{ geoip2_city_hits_filtered }}"
+      when: (geoip2_city_hits.matched | default(0)) | int > 0
+      notify: validate and reload nginx
+
+    - name: Remove private temp build dir
+      file:
+        path: "{{ tmpdir.path }}"
+        state: absent
+
+  handlers:
+    - name: Validate nginx configuration
+      listen: validate and reload nginx
+      command: /usr/sbin/nginx -t -c /etc/nginx/nginx.conf
+      register: nginx_test
+      changed_when: false
+      failed_when: nginx_test.rc != 0
+      notify: show nginx test output
+
+    - name: show nginx test output
+      listen: show nginx test output
+      debug:
+        var: nginx_test.stdout_lines
+
+    - name: Reload nginx (systemd)
+      listen: validate and reload nginx
+      when: ansible_service_mgr == "systemd"
+      systemd:
+        name: nginx
+        state: reloaded
+
+    - name: Reload nginx (non-systemd)
+      listen: validate and reload nginx
+      when: ansible_service_mgr != "systemd"
+      service:
+        name: nginx
+        state: reloaded
