@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "docker-compose",
+      "label": "build_docker",
+      "dockerCompose": {
+        "up": {
+          "detached": true,
+        }
+      }
+    },
+    {
+      "type": "npm",
+      "label": "build_nest",
+      "script": "build",
+      "group": {
+        "isDefault": true
+      }
+    },
+    {
+        "label": "up",
+        "dependsOn": [
+          "build_nest",
+          "build_docker"
+        ]
+    },
+    {
+      "type": "docker-compose",
+      "label": "down",
+      "dockerCompose": {
+        "down": {
+          "removeVolumes": false,
+          "customOptions": "backend"
+        }
+      }
+    }
+  ]
+}
