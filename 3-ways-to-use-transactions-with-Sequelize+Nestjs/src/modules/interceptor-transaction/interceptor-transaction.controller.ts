@@ -13,6 +13,10 @@ interface CreateDepartmentBody {
   name: string;
 }
 
+interface DepartmentStatusBody {
+  action: 'deactivation';
+}
+
 @Controller('interceptor-transaction')
 @UseInterceptors(TransactionInterceptor)
 export class InterceptorTransactionController {
@@ -39,12 +43,13 @@ export class InterceptorTransactionController {
     return { status: 'committed' };
   }
 
-  @Patch('departments/:id/deactivate')
+  @Patch('departments/:id/status')
   async deactivateDepartment(
     @Param('id', ParseIntPipe) departmentId: number,
+    @Body() body: DepartmentStatusBody,
     @DbTransaction() transaction: Transaction
   ) {
-    await this.service.deactivateDepartment(departmentId, transaction);
+    await this.service.deactivateDepartment(departmentId, body, transaction);
     return { status: 'committed' };
   }
 

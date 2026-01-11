@@ -11,6 +11,10 @@ interface CreateDepartmentPayload {
   name: string;
 }
 
+interface DepartmentStatusPayload {
+  action: 'deactivation';
+}
+
 interface CreateUserDepartmentPayload {
   userId: number;
   departmentId: number;
@@ -47,9 +51,10 @@ export class UnitOfWorkService {
     });
   }
 
-  async deactivateDepartment(departmentId: number) {
+  async deactivateDepartment(departmentId: number, payload: DepartmentStatusPayload) {
     await this.runUseCase(async (transaction) => {
       void departmentId;
+      void payload;
       void transaction;
     });
   }

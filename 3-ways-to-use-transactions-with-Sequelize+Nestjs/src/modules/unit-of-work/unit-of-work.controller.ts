@@ -10,6 +10,10 @@ interface CreateDepartmentBody {
   name: string;
 }
 
+interface DepartmentStatusBody {
+  action: 'deactivation';
+}
+
 @Controller('unit-of-work')
 export class UnitOfWorkController {
   constructor(private readonly service: UnitOfWorkService) {}
@@ -32,9 +36,12 @@ export class UnitOfWorkController {
     return { status: 'committed' };
   }
 
-  @Patch('departments/:id/deactivate')
-  async deactivateDepartment(@Param('id', ParseIntPipe) departmentId: number) {
-    await this.service.deactivateDepartment(departmentId);
+  @Patch('departments/:id/status')
+  async deactivateDepartment(
+    @Param('id', ParseIntPipe) departmentId: number,
+    @Body() body: DepartmentStatusBody
+  ) {
+    await this.service.deactivateDepartment(departmentId, body);
     return { status: 'committed' };
   }
 
