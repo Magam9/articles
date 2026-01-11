@@ -10,11 +10,6 @@ interface CreateDepartmentBody {
   name: string;
 }
 
-interface CreateUserDepartmentBody {
-  userId: number;
-  departmentId: number;
-}
-
 @Controller('unit-of-work')
 export class UnitOfWorkController {
   constructor(private readonly service: UnitOfWorkService) {}
@@ -43,9 +38,12 @@ export class UnitOfWorkController {
     return { status: 'committed' };
   }
 
-  @Post('user-departments')
-  async createUserDepartment(@Body() body: CreateUserDepartmentBody) {
-    await this.service.createUserDepartment(body);
+  @Post('users/:userId/departments/:departmentId')
+  async createUserDepartment(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('departmentId', ParseIntPipe) departmentId: number
+  ) {
+    await this.service.createUserDepartment({ userId, departmentId });
     return { status: 'committed' };
   }
 }

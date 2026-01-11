@@ -12,11 +12,6 @@ interface CreateDepartmentBody {
   name: string;
 }
 
-interface CreateUserDepartmentBody {
-  userId: number;
-  departmentId: number;
-}
-
 @Controller('manual-transaction')
 export class ManualTransactionController {
   constructor(
@@ -58,8 +53,13 @@ export class ManualTransactionController {
     return this.runInTransaction((transaction) => this.service.deactivateDepartment(departmentId, transaction));
   }
 
-  @Post('user-departments')
-  async createUserDepartment(@Body() body: CreateUserDepartmentBody) {
-    return this.runInTransaction((transaction) => this.service.createUserDepartment(body, transaction));
+  @Post('users/:userId/departments/:departmentId')
+  async createUserDepartment(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('departmentId', ParseIntPipe) departmentId: number
+  ) {
+    return this.runInTransaction((transaction) =>
+      this.service.createUserDepartment({ userId, departmentId }, transaction)
+    );
   }
 }

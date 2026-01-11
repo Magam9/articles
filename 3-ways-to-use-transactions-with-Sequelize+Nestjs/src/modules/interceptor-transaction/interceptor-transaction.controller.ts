@@ -13,11 +13,6 @@ interface CreateDepartmentBody {
   name: string;
 }
 
-interface CreateUserDepartmentBody {
-  userId: number;
-  departmentId: number;
-}
-
 @Controller('interceptor-transaction')
 @UseInterceptors(TransactionInterceptor)
 export class InterceptorTransactionController {
@@ -53,12 +48,13 @@ export class InterceptorTransactionController {
     return { status: 'committed' };
   }
 
-  @Post('user-departments')
+  @Post('users/:userId/departments/:departmentId')
   async createUserDepartment(
-    @Body() body: CreateUserDepartmentBody,
+    @Param('userId', ParseIntPipe) userId: number,
+    @Param('departmentId', ParseIntPipe) departmentId: number,
     @DbTransaction() transaction: Transaction
   ) {
-    await this.service.createUserDepartment(body, transaction);
+    await this.service.createUserDepartment({ userId, departmentId }, transaction);
     return { status: 'committed' };
   }
 }
