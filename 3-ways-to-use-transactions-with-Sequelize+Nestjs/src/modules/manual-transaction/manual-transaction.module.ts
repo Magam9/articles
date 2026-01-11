@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ManualTransactionController } from './manual-transaction.controller';
-import { ManualTransactionService } from './manual-transaction.service';
+
+import { ManualTransactionController } from './manual-transaction.controller.js';
+import { ManualTransactionService } from './manual-transaction.service.js';
 
 @Module({
   controllers: [ManualTransactionController],
