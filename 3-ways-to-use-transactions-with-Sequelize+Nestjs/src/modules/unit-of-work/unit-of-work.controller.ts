@@ -1,25 +1,14 @@
 import { Body, Controller, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiParam, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { UnitOfWorkService } from './unit-of-work.service.js';
-
-class CreateUserBody {
-  @ApiProperty({ example: 'Ada Lovelace' })
-  name!: string;
-
-  @ApiProperty({ example: 'ada@company.test' })
-  email!: string;
-}
-
-class CreateDepartmentBody {
-  @ApiProperty({ example: 'Engineering' })
-  name!: string;
-}
-
-class DepartmentStatusBody {
-  @ApiProperty({ enum: ['deactivation'] })
-  action!: 'deactivation';
-}
+import { CreateUserBody, createUserSchema } from './dto/create-user.dto.js';
+import { CreateDepartmentBody, createDepartmentSchema } from './dto/create-department.dto.js';
+import {
+  DepartmentStatusBody,
+  departmentStatusSchema,
+} from './dto/department-status.dto.js';
+import { ZodValidationPipe } from '../../shared/pipes/zod-validation.pipe.js';
 
 @Controller('unit-of-work')
 @ApiTags('unit-of-work')
@@ -29,7 +18,7 @@ export class UnitOfWorkController {
   @Post('users')
   @ApiOperation({ summary: 'Create a user' })
   @ApiBody({ type: CreateUserBody })
-  async createUser(@Body() body: CreateUserBody) {
+  async createUser(@Body(new ZodValidationPipe(createUserSchema)) body: CreateUserBody) {
     await this.service.createUser(body);
     return { status: 'committed' };
   }
@@ -45,7 +34,7 @@ export class UnitOfWorkController {
   @Post('departments')
   @ApiOperation({ summary: 'Create a department' })
   @ApiBody({ type: CreateDepartmentBody })
-  async createDepartment(@Body() body: CreateDepartmentBody) {
+  async createDepartment(@Body(new ZodValidationPipe(createDepartmentSchema)) body: CreateDepartmentBody) {
     await this.service.createDepartment(body);
     return { status: 'committed' };
   }
@@ -56,7 +45,7 @@ export class UnitOfWorkController {
   @ApiBody({ type: DepartmentStatusBody })
   async deactivateDepartment(
     @Param('id', ParseIntPipe) departmentId: number,
-    @Body() body: DepartmentStatusBody
+    @Body(new ZodValidationPipe(departmentStatusSchema)) body: DepartmentStatusBody
   ) {
     await this.service.deactivateDepartment(departmentId, body);
     return { status: 'committed' };
