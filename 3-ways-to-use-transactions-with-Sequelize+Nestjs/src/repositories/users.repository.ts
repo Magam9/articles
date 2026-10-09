@@ -14,4 +14,13 @@ export class UsersRepository {
     const result = await this.usersDao.create(data, options);
     return result.toJSON();
   }
+
+  async deactivate(userId: number, options: TransactionOptions = {}) {
+    const [affectedCount] = await this.usersDao.updateByConditions(
+      { usersConditions: { id: userId } },
+      { deactivatedAt: new Date() },
+      options,
+    );
+    return affectedCount;
+  }
 }
