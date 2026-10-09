@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { DepartmentsDao } from '../dao/departments.dao.js';
-import { DepartmentCreationAttributes } from 'src/models/department.typings.js';
+import { DepartmentCreationAttributes } from '../models/department.typings.js';
 import { TransactionOptions } from '../dao/dao.typings.js';
 
 @Injectable()
