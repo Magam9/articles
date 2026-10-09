@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Transaction } from 'sequelize';
 
+import { UsersRepository } from '../../repositories/users.repository.js';
+import { DepartmentsRepository } from '../../repositories/departments.repository.js';
+import { UsersDepartmentsRepository } from '../../repositories/users-departments.repository.js';
+
 interface CreateUserPayload {
   name: string;
   email: string;
@@ -21,19 +25,23 @@ interface CreateUserDepartmentPayload {
 
 @Injectable()
 export class ManualTransactionService {
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly departmentsRepository: DepartmentsRepository,
+    private readonly usersDepartmentsRepository: UsersDepartmentsRepository,
+  ) {}
+
   async createUser(payload: CreateUserPayload, transaction: Transaction) {
-    void payload;
-    void transaction;
+    await this.usersRepository.create({ ...payload, deactivatedAt: null }, { transaction });
   }
 
   async deactivateUser(userId: number, transaction: Transaction) {
-    void userId;
-    void transaction;
+    await this.usersRepository.deactivate(userId, { transaction });
+    await this.usersDepartmentsRepository.removeUserFromAllDepartments(userId, { transaction });
   }
 
   async createDepartment(payload: CreateDepartmentPayload, transaction: Transaction) {
-    void payload;
-    void transaction;
+    await this.departmentsRepository.create(payload, { transaction });
   }
 
   async deactivateDepartment(
@@ -41,13 +49,12 @@ export class ManualTransactionService {
     payload: DepartmentStatusPayload,
     transaction: Transaction
   ) {
-    void departmentId;
-    void payload;
-    void transaction;
+    if (payload.action === 'deactivation') {
+      await this.usersDepartmentsRepository.removeAllUsersFromDepartment(departmentId, { transaction });
+    }
   }
 
   async createUserDepartment(payload: CreateUserDepartmentPayload, transaction: Transaction) {
-    void payload;
-    void transaction;
+    await this.usersDepartmentsRepository.create(payload, { transaction });
   }
 }
