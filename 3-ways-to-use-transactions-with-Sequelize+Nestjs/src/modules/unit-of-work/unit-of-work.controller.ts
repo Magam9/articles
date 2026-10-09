@@ -51,6 +51,18 @@ export class UnitOfWorkController {
     return { status: 'committed' };
   }
 
+  @Post('departments/:departmentId/users')
+  @ApiOperation({ summary: 'Create a user inside a department' })
+  @ApiParam({ name: 'departmentId', type: Number })
+  @ApiBody({ type: CreateUserBody })
+  async createUserInDepartment(
+    @Param('departmentId', ParseIntPipe) departmentId: number,
+    @Body(new ZodValidationPipe(createUserSchema)) body: CreateUserBody,
+  ) {
+    await this.service.createUserInDepartment(body, departmentId);
+    return { status: 'committed' };
+  }
+
   @Post('users/:userId/departments/:departmentId')
   @ApiOperation({ summary: 'Create a user department' })
   @ApiParam({ name: 'userId', type: Number })
