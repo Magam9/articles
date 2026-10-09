@@ -14,4 +14,18 @@ export class UsersDepartmentsRepository {
     const result = await this.usersDepartmentsDao.create(data, options);
     return result.toJSON();
   }
+
+  removeUserFromAllDepartments(userId: number, options: TransactionOptions = {}) {
+    return this.usersDepartmentsDao.destroyByConditions(
+      { usersDepartmentsConditions: { userId } },
+      options,
+    );
+  }
+
+  removeAllUsersFromDepartment(departmentId: number, options: TransactionOptions = {}) {
+    return this.usersDepartmentsDao.destroyByConditions(
+      { usersDepartmentsConditions: { departmentId } },
+      options,
+    );
+  }
 }

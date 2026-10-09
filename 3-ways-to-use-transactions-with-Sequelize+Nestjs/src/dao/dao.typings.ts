@@ -1,3 +1,3 @@
-import Sequelize from 'sequelize';
+import { Transactionable } from 'sequelize';
 
-export type TransactionOptions = Sequelize.TransactionOptions;
+export type TransactionOptions = Transactionable;
