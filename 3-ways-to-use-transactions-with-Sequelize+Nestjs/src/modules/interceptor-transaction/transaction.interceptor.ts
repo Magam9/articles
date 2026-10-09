@@ -12,10 +12,10 @@ import { lastValueFrom, from, Observable } from 'rxjs';
 export class TransactionInterceptor implements NestInterceptor {
   constructor(@InjectConnection() private readonly sequelize: Sequelize) {}
 
-  intercept(_context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     return from(
       this.sequelize.transaction(async (transaction) => {
-        const request = _context.switchToHttp().getRequest();
+        const request = context.switchToHttp().getRequest();
         request.transaction = transaction;
         return lastValueFrom(next.handle());
       })
