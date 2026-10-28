@@ -1,6 +1,6 @@
 # Promise vs Observable in NestJS
 
-Example code for the article "Promises vs Observables in NestJS: I Wrote the Same Endpoints Twice and Measured Them".
+Example code for the article *I Benchmarked Promises vs Observables in NestJS. Speed Was the Boring Part.*
 
 The same features are written twice, once with `async/await` and once with RxJS:
 
