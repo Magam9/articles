@@ -1,0 +1,51 @@
+[
+  {
+    "task": "promise: await one value",
+    "ops/sec": 4483991,
+    "mean (ns)": 289,
+    "p99 (ns)": 666,
+    "rme %": 1.52
+  },
+  {
+    "task": "observable: lastValueFrom(of(1))",
+    "ops/sec": 2663679,
+    "mean (ns)": 510,
+    "p99 (ns)": 1004,
+    "rme %": 3.54
+  },
+  {
+    "task": "promise: 5 transformations",
+    "ops/sec": 4405980,
+    "mean (ns)": 289,
+    "p99 (ns)": 772,
+    "rme %": 1.72
+  },
+  {
+    "task": "observable: 5 x map()",
+    "ops/sec": 586374,
+    "mean (ns)": 1950,
+    "p99 (ns)": 3348,
+    "rme %": 5.32
+  },
+  {
+    "task": "promise: Promise.all of 3",
+    "ops/sec": 1992728,
+    "mean (ns)": 604,
+    "p99 (ns)": 1134,
+    "rme %": 1.47
+  },
+  {
+    "task": "observable: forkJoin of 3",
+    "ops/sec": 761114,
+    "mean (ns)": 1624,
+    "p99 (ns)": 3047,
+    "rme %": 2.78
+  },
+  {
+    "task": "observable: forkJoin of 3 promises (from())",
+    "ops/sec": 640087,
+    "mean (ns)": 1936,
+    "p99 (ns)": 4705,
+    "rme %": 2.63
+  }
+]

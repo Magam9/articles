@@ -1,0 +1,102 @@
+[
+  {
+    "scenario": "sync baseline",
+    "interceptor": "no",
+    "req/sec": 7080,
+    "p50 ms": 6,
+    "p99 ms": 15,
+    "errors": 0,
+    "RSS MB": 198,
+    "req/sec per run": "7080 / 7363 / 6656"
+  },
+  {
+    "scenario": "promise ping",
+    "interceptor": "no",
+    "req/sec": 6833,
+    "p50 ms": 6,
+    "p99 ms": 17,
+    "errors": 0,
+    "RSS MB": 202,
+    "req/sec per run": "6833 / 6827 / 6937"
+  },
+  {
+    "scenario": "observable ping",
+    "interceptor": "no",
+    "req/sec": 5971,
+    "p50 ms": 8,
+    "p99 ms": 19,
+    "errors": 0,
+    "RSS MB": 205,
+    "req/sec per run": "5928 / 5971 / 6429"
+  },
+  {
+    "scenario": "promise dashboard",
+    "interceptor": "no",
+    "req/sec": 529,
+    "p50 ms": 66,
+    "p99 ms": 300,
+    "errors": 0,
+    "RSS MB": 251,
+    "req/sec per run": "528 / 529 / 529"
+  },
+  {
+    "scenario": "observable dashboard",
+    "interceptor": "no",
+    "req/sec": 506,
+    "p50 ms": 69,
+    "p99 ms": 312,
+    "errors": 0,
+    "RSS MB": 232,
+    "req/sec per run": "496 / 507 / 506"
+  },
+  {
+    "scenario": "sync baseline",
+    "interceptor": "yes",
+    "req/sec": 5351,
+    "p50 ms": 9,
+    "p99 ms": 21,
+    "errors": 0,
+    "RSS MB": 211,
+    "req/sec per run": "5351 / 5040 / 5530"
+  },
+  {
+    "scenario": "promise ping",
+    "interceptor": "yes",
+    "req/sec": 5686,
+    "p50 ms": 8,
+    "p99 ms": 20,
+    "errors": 0,
+    "RSS MB": 215,
+    "req/sec per run": "5686 / 5828 / 5602"
+  },
+  {
+    "scenario": "observable ping",
+    "interceptor": "yes",
+    "req/sec": 5151,
+    "p50 ms": 9,
+    "p99 ms": 21,
+    "errors": 0,
+    "RSS MB": 216,
+    "req/sec per run": "5516 / 5151 / 4692"
+  },
+  {
+    "scenario": "promise dashboard",
+    "interceptor": "yes",
+    "req/sec": 517,
+    "p50 ms": 67,
+    "p99 ms": 308,
+    "errors": 0,
+    "RSS MB": 264,
+    "req/sec per run": "521 / 502 / 517"
+  },
+  {
+    "scenario": "observable dashboard",
+    "interceptor": "yes",
+    "req/sec": 499,
+    "p50 ms": 70,
+    "p99 ms": 314,
+    "errors": 0,
+    "RSS MB": 238,
+    "req/sec per run": "500 / 499 / 495"
+  }
+]
