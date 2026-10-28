@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html, body { margin: 0; padding: 0; background: #ffffff; }
+      #stage { display: block; }
+      svg { display: block; text-rendering: geometricPrecision; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <script type="module">
+      const name = new URLSearchParams(location.search).get('v');
+      const mod = await import(`./${name}.js`);
+      window.VISUAL = mod.meta;
+      window.render = mod.render;
+      await document.fonts.ready;
+      mod.render(mod.meta.duration ? 0 : 0);
+      window.READY = true;
+    </script>
+  </body>
+</html>
