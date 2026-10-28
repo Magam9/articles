@@ -30,6 +30,10 @@ bench/
   cancellation.bench.ts  # what happens when the client gives up
   stack-traces.ts        # the same error thrown through async/await and through RxJS
   results/               # raw JSON from the runs used in the article
+visuals/
+  src/                   # charts and animations as small SVG scripts (one file per image)
+  render.mjs             # renders them to PNG/GIF with Playwright + ffmpeg
+  out/                   # the images used in the article
 ```
 
 ## Run it
@@ -70,3 +74,16 @@ downstream share those 2 cores, so look at the ratios, not the absolute numbers.
 Versions matter here: cancelling an Observable when the client disconnects was
 added in `@nestjs/core` 12.1.0. On 12.0.0 the `observable` row of the
 cancellation benchmark looks exactly like the `promise` row.
+
+## Visuals
+
+Every chart and animation in the article is generated from `visuals/src`, using
+the numbers in `bench/results`. To render them again:
+
+```bash
+npm i -D playwright && npx playwright install chromium   # once
+node visuals/render.mjs            # all of them
+node visuals/render.mjs cancel      # just one
+```
+
+Animated ones also need `ffmpeg` on your PATH.
